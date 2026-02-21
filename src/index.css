@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+
+body {
+  font-family: 'Geist', sans-serif;
+}
+
+.background {
+  background: radial-gradient(ellipse at top, #1a1a2e 0%, #0f0f0f 70%);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor {
+  animation: blink 1s step-start infinite;
+  color: #fb923c;
+}
+
+@keyframes ripple {
+  to {
+    transform: translate(-50%, -50%) scale(60);
+    opacity: 0;
+  }
+}
+
+.ripple-origin {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: rgba(251, 146, 60, 0.25);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: ripple 0.5s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-slide-in {
+  opacity: 0;
+  animation: fadeSlideIn 0.2s ease-out forwards;
+}
