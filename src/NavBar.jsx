@@ -7,7 +7,7 @@ function NavBar() {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 flex items-center justify-center gap-80 px-12 py-5 z-50 backdrop-blur-md bg-white/5 border-b border-white/10">
+    <nav className="fixed top-0 left-0 right-0 flex items-center justify-center gap-170 px-12 py-5 z-50 backdrop-blur-md bg-white/5 border-b border-white/10">
         <div className="flex items-center gap-6">
           <button
             className="text-white/60 text-sm font-mono cursor-pointer"
