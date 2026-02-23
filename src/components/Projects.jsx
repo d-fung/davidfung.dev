@@ -9,7 +9,7 @@ const projects = [
     tags: ["Python", "discord.py", "yfinance", "matplotlib", "Deepseek AI"],
     github: "https://github.com/d-fung/omni-bot",
     demo: "",
-    gif: "",
+    video: "/assets/omni-bot-demo.mp4",
   },
   {
     title: "Genetic Sequence Analyzer",
@@ -18,7 +18,7 @@ const projects = [
     tags: ["JavaScript", "React.js", "Recharts"],
     github: "https://github.com/d-fung/genetic-analyzer",
     demo: "https://d-fung.github.io/genetic-analyzer/",
-    gif: "",
+    video: "/assets/genetic-analyzer-demo.mp4",
   },
   {
     title: "Credit Card Statement Analyzer",
@@ -27,7 +27,7 @@ const projects = [
     tags: ["JavaScript", "React.js"],
     github: "https://github.com/d-fung/credit-card-statement-analyzer",
     demo: "https://d-fung.github.io/credit-card-statement-analyzer/",
-    gif: "",
+    video: "/assets/credit-card-statement-analyzer-demo.mp4",
   },
 ];
 
@@ -53,11 +53,14 @@ function Projects() {
             style={anim(`${0.15 + i * 0.15}s`)}
           >
             <div>
-              {p.gif && (
-                <img
-                  src={p.gif}
-                  alt={p.title}
-                  className="w-full h-40 object-cover rounded-md mb-4"
+              {p.video && (
+                <video
+                  src={p.video}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-40 object-cover rounded-md mb-4 border border-white/20"
                 />
               )}
               <h3 className="text-xl font-semibold text-white mb-2">
