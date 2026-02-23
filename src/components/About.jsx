@@ -8,7 +8,7 @@ function About() {
   const cls = visible ? "fade-slide-in" : "";
 
   return (
-    <div ref={ref} className="flex flex-row items-center justify-center gap-12 min-h-screen px-12">
+    <div id="about" ref={ref} className="flex flex-row items-center justify-center gap-12 min-h-screen px-12">
       <div>
         <h2 className={`text-5xl text-white/80 font-bold mb-10 ${cls}`} style={anim("0s")}>/ about me</h2>
         <p className={`mt-4 text-lg text-white/70 max-w-xl ${cls}`} style={anim("0.15s")}>
@@ -36,7 +36,7 @@ function About() {
             Ontario Power Generation
           </a>{" "}
           and <span className="text-orange-400">Mission MomN’Pop</span>. I hold a Bachelor of Engineering in Software
-          Engineering and a Bachelor of Science in Medical Sciences.
+          Engineering and a Bachelor of Science (Major in Medical Sciences).
         </p>
         <div className="mt-8">
           <p className={`text-lg text-white/70 mb-4 ${cls}`} style={anim("0.45s")}>

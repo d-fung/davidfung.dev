@@ -114,7 +114,7 @@ function Intro() {
   const typingDelay = (FULL_TEXT.length * TYPING_SPEED) / 1000;
 
   return (
-    <div className="flex flex-row items-center justify-center gap-12 min-h-screen px-12">
+    <div id="intro" className="flex flex-row items-center justify-center gap-12 min-h-screen px-12">
       <AsciiImage src="/assets/me.png" cols={80} fontSize={8} />
       <div>
         <h1 className="text-5xl font-semibold text-white">

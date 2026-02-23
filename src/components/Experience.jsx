@@ -5,7 +5,7 @@ const jobs = [
   {
     company: "University Health Network",
     title: "Software Integration Developer",
-    dates: "July 2024 – Present",
+    dates: "Jul 2024 – Present",
     url: "https://www.uhn.ca/",
     bullets: [
       "Designed and maintained distributed backend services powering integrations that process millions of messages daily across multiple hospital systems",
@@ -80,7 +80,7 @@ function Experience() {
   }
 
   return (
-    <div
+    <div id="experience"
       ref={ref}
       className="flex flex-row items-center justify-start gap-12 min-h-screen px-12"
     >
