@@ -13,7 +13,7 @@ function About() {
         <h2 className={`text-5xl text-white/80 font-bold mb-10 ${cls}`} style={anim("0s")}>/ about me</h2>
         <p className={`mt-4 text-lg text-white/70 max-w-xl ${cls}`} style={anim("0.15s")}>
           I’m currently a{" "}
-          <span className="font-bold">Software Integration Developer</span> at{" "}
+          <span className="font-bold">Software Engineer</span> at{" "}
           <a
             href="https://www.uhn.ca"
             target="_blank"

@@ -4,7 +4,7 @@ import { useVisible } from "../hooks/useVisible";
 const jobs = [
   {
     company: "University Health Network",
-    title: "Software Integration Developer",
+    title: "Software Engineer",
     dates: "Jul 2024 – Present",
     url: "https://www.uhn.ca/",
     bullets: [
