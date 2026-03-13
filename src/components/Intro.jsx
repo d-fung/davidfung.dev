@@ -2,11 +2,27 @@ import { useEffect, useRef, useState } from "react";
 
 const CHARS = " .:-=+*#%@";
 const SCRAMBLE_CHARS = "!<>-_\\/[]{}=+*^?#ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const ORANGE = [251, 146, 60];
+const WHITE  = [255, 255, 255];
+const TRAIL_LENGTH  = 6;           // rows of glowing trail behind the drop head
+const FALL_SPEED_MIN = 14;         // rows per second (slowest)
+const FALL_SPEED_MAX = 35;         // rows per second (fastest)
 
-function AsciiImage({ src, cols = 80, fontSize = 11 }) {
-  const [displayed, setDisplayed] = useState("");
-  const intervalRef = useRef(null);
+function lerpColor([r1, g1, b1], [r2, g2, b2], t) {
+  return `rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;
+}
 
+function makeDrop(col) {
+  return { col, y: -TRAIL_LENGTH, speed: FALL_SPEED_MIN + Math.random() * (FALL_SPEED_MAX - FALL_SPEED_MIN), startAt: performance.now(), done: false };
+}
+
+function AsciiImage({ src, cols = 80, fontSize = 8 }) {
+  const canvasRef = useRef(null);
+  const animRef   = useRef(null);
+  const dataRef   = useRef(null);
+  const [ready, setReady] = useState(false);
+
+  // Load image → build ASCII lines → init drop state
   useEffect(() => {
     let active = true;
     const img = new Image();
@@ -16,82 +32,153 @@ function AsciiImage({ src, cols = 80, fontSize = 11 }) {
       if (!active) return;
 
       const rows = Math.floor(cols * (img.height / img.width) * 0.45);
-      const canvas = document.createElement("canvas");
-      canvas.width = cols;
-      canvas.height = rows;
-      const ctx = canvas.getContext("2d");
+      const offscreen = document.createElement("canvas");
+      offscreen.width = cols;
+      offscreen.height = rows;
+      const ctx = offscreen.getContext("2d");
       ctx.drawImage(img, 0, 0, cols, rows);
-
       const { data } = ctx.getImageData(0, 0, cols, rows);
-      let target = "";
+
+      const lines = [];
       for (let y = 0; y < rows; y++) {
+        const line = [];
         for (let x = 0; x < cols; x++) {
           const i = (y * cols + x) * 4;
-          const brightness =
-            (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255;
-          target += CHARS[Math.floor(brightness * (CHARS.length - 1))];
+          const b = (0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]) / 255;
+          line.push(CHARS[Math.floor(b * (CHARS.length - 1))]);
         }
-        target += "\n";
+        lines.push(line);
       }
 
-      // shuffle non-newline indices for random resolution order
-      const indices = target
-        .split("")
-        .map((c, i) => (c !== "\n" ? i : null))
-        .filter((i) => i !== null);
-      for (let i = indices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [indices[i], indices[j]] = [indices[j], indices[i]];
-      }
+      // One drop per column, staggered randomly over 1.2 s
+      const now = performance.now();
+      const drops = Array.from({ length: cols }, (_, col) => ({
+        ...makeDrop(col),
+        startAt: now + Math.random() * 1200,
+      }));
 
-      // start with all random chars
-      setDisplayed(
-        target
-          .split("")
-          .map((c) =>
-            c === "\n"
-              ? "\n"
-              : SCRAMBLE_CHARS[
-                  Math.floor(Math.random() * SCRAMBLE_CHARS.length)
-                ],
-          )
-          .join(""),
-      );
+      // settleAt[idx]: -1 = not yet reached, >0 = timestamp when char stops scrambling
+      const settleAt = new Float64Array(rows * cols).fill(-1);
 
-      const charsPerTick = Math.ceil(indices.length / (2000 / 30));
-      let resolved = 0;
-
-      intervalRef.current = setInterval(() => {
-        resolved = Math.min(resolved + charsPerTick, indices.length);
-        const chars = target.split("");
-        for (let i = 0; i < resolved; i++)
-          chars[indices[i]] = target[indices[i]];
-        for (let i = resolved; i < indices.length; i++)
-          chars[indices[i]] =
-            SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
-        setDisplayed(chars.join(""));
-        if (resolved >= indices.length) clearInterval(intervalRef.current);
-      }, 30);
+      dataRef.current = { lines, rows, drops, settleAt, initialDone: false, nextSpawnAt: Infinity, charW: 0 };
+      setReady(true);
     };
-
-    return () => {
-      active = false;
-      clearInterval(intervalRef.current);
-    };
+    return () => { active = false; };
   }, [src, cols]);
 
-  return (
-    <pre
-      style={{
-        fontSize: `${fontSize}px`,
-        lineHeight: 1,
-        fontFamily: "monospace",
-        color: "#fb923c",
-      }}
-    >
-      {displayed}
-    </pre>
-  );
+  // Canvas render loop
+  useEffect(() => {
+    if (!ready || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    ctx.font = `${fontSize}px monospace`;
+    const charW = ctx.measureText("M").width;
+    const d = dataRef.current;
+    d.charW = charW;
+    canvas.width  = cols * charW;
+    canvas.height = d.rows * fontSize;
+
+    let lastTime = performance.now();
+
+    const tick = (now) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.05); // cap dt to avoid jumps
+      lastTime = now;
+      const { lines, rows, drops, settleAt } = d;
+
+      // Spawn periodic drops once initial phase is done
+      if (d.initialDone && now >= d.nextSpawnAt) {
+        drops.push(makeDrop(Math.floor(Math.random() * cols)));
+        d.nextSpawnAt = now + 300 + Math.random() * 900;
+      }
+
+      // Advance each drop and activate rows it passes through
+      for (const drop of drops) {
+        if (drop.done || now < drop.startAt) continue;
+        const prevY = drop.y;
+        drop.y += drop.speed * dt;
+
+        const from = Math.max(0, Math.floor(prevY) + 1);
+        const to   = Math.min(rows - 1, Math.floor(drop.y));
+        for (let row = from; row <= to; row++) {
+          settleAt[row * cols + drop.col] = now + 150 + Math.random() * 350;
+        }
+
+        if (drop.y > rows + TRAIL_LENGTH) drop.done = true;
+      }
+
+      // Remove finished drops
+      for (let i = drops.length - 1; i >= 0; i--) {
+        if (drops[i].done) drops.splice(i, 1);
+      }
+
+      // Transition to post-initial phase once every char has settled
+      if (!d.initialDone && drops.length === 0) {
+        if (settleAt.every(t => t > 0 && now >= t)) {
+          d.initialDone = true;
+          d.nextSpawnAt = now + 800 + Math.random() * 2000;
+        }
+      }
+
+      // --- Render ---
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let row = 0; row < rows; row++) {
+        const line = lines[row];
+        for (let col = 0; col < line.length; col++) {
+          const idx = row * cols + col;
+          const st  = settleAt[idx];
+          if (st < 0) continue; // not yet reached by any drop
+
+          const x = col * charW;
+          const y = row * fontSize;
+
+          // Check if a drop's trail is over this char
+          let trailT = -1;
+          for (const drop of drops) {
+            if (drop.col !== col) continue;
+            const dist = drop.y - row;
+            if (dist >= 0 && dist < TRAIL_LENGTH)
+              trailT = Math.max(trailT, 1 - dist / TRAIL_LENGTH);
+          }
+
+          let ch, color;
+          if (trailT >= 0) {
+            // In a glowing trail: scrambled, white → orange
+            ch    = SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+            color = lerpColor(ORANGE, WHITE, trailT);
+          } else if (now < st) {
+            // Drop just passed, still scrambling before settling
+            ch    = SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+            color = "#fb923c";
+          } else {
+            // Settled — show real ASCII char
+            ch    = line[col];
+            color = "#fb923c";
+          }
+
+          ctx.fillStyle = color;
+          ctx.fillText(ch, x, y + fontSize);
+        }
+      }
+
+      animRef.current = requestAnimationFrame(tick);
+    };
+
+    animRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [ready, fontSize, cols]);
+
+  const handleClick = (e) => {
+    const d = dataRef.current;
+    if (!d || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const col = Math.floor(((e.clientX - rect.left) * scaleX) / d.charW);
+    if (col >= 0 && col < cols) d.drops.push(makeDrop(col));
+  };
+
+  return <canvas ref={canvasRef} onClick={handleClick} style={{ display: "block", cursor: "crosshair" }} />;
 }
 
 const FULL_TEXT = "Hi, I'm David.";
